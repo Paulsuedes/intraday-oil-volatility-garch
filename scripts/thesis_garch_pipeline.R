@@ -5,44 +5,47 @@
 library(dplyr)
 library(lubridate)
 library(ggplot2)
-library(moments)   
+library(moments)
 library(zoo)
 library(rugarch)
 library(forecast)
 
-
 ############################################################
-## 1. Read data
+## 1. Read data (local files expected in /data)
+## Note: Original dataset not included due to licensing.
 ############################################################
 
-WTI.5.m.data = read.csv(
-  "C:/Users/pasu0/OneDrive/Desktop/Studium VWL/7.Semester/Bachelor Arbeit/WTI 5 m data.csv",
-  header = FALSE, sep = ";"
-)
+daily_path <- file.path("data", "WTI_1_day_data.csv")
+hf_path    <- file.path("data", "WTI_5m_data.csv")
 
-WTI.1.day.data = read.csv(
-  "C:/Users/pasu0/OneDrive/Desktop/Studium VWL/7.Semester/Bachelor Arbeit/WTI 1 day data.csv",
-  header = FALSE, sep = ";"
-)
+if (!file.exists(daily_path) || !file.exists(hf_path)) {
+  stop(
+    "Data files not found in /data.\n",
+    "Note: The original dataset is not included in this repository due to licensing.\n",
+    "See data/README.md for the expected file names and format."
+  )
+}
 
+WTI.1.day.data <- read.csv(daily_path, header = FALSE, sep = ";", stringsAsFactors = FALSE)
+WTI.5.m.data   <- read.csv(hf_path,    header = FALSE, sep = ";", stringsAsFactors = FALSE)
 
 ############################################################
 ## 2. Set column names (OHLCV)
 ############################################################
 
-colnames(WTI.5.m.data)  = c("date_chr", "time_chr", "open", "high", "low", "close", "volume")
-colnames(WTI.1.day.data) = c("date_chr", "time_chr", "open", "high", "low", "close", "volume")
-
+colnames(WTI.5.m.data)   <- c("date_chr", "time_chr", "open", "high", "low", "close", "volume")
+colnames(WTI.1.day.data) <- c("date_chr", "time_chr", "open", "high", "low", "close", "volume")
 
 ############################################################
 ## 3. Prepare daily data (daily log-returns)
 ############################################################
 
-wti_daily = WTI.1.day.data %>%
+wti_daily <- WTI.1.day.data %>%
   mutate(
     date  = dmy(date_chr),
     close = as.numeric(close)
   ) %>%
+  filter(!is.na(close), close > 0) %>%
   arrange(date) %>%
   transmute(
     date  = date,
@@ -50,7 +53,6 @@ wti_daily = WTI.1.day.data %>%
     r_log = 100 * (log(close) - log(lag(close)))   # daily log returns in %
   ) %>%
   filter(!is.na(r_log))    # drop first NA return
-
 
 ############################################################
 ## 4. Prepare 5-minute data (intraday log-returns)
@@ -851,6 +853,7 @@ dm_crisis_std_rolling
 dm_calm_std_rolling
 dm_transition_std_rolling
 dm_full_std_rolling
+
 
 
 
